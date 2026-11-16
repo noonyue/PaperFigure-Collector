@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<attachment-metadata-response xmlns:prism="http://prismstandard.org/namespaces/basic/2.0/">
+  <coredata><prism:doi>10.1016/example</prism:doi></coredata>
+  <attachment><url>http://api.elsevier.com/content/object/pii/FIXTURE/ref/gr1?httpAccept=image%2Fjpeg&amp;view=HIGH</url>
+    <ref>gr1</ref><filename>gr1_lrg.jpg</filename><mimetype>image/jpeg</mimetype>
+    <size>1234</size><height>70</height><width>100</width><type>IMAGE-HIGH-RES</type>
+  </attachment>
+  <attachment><url>http://api.elsevier.com/content/object/pii/FIXTURE/ref/gr1?httpAccept=image%2Fjpeg&amp;view=STANDARD</url>
+    <ref>gr1</ref><filename>gr1.jpg</filename><mimetype>image/jpeg</mimetype>
+    <size>432</size><height>21</height><width>30</width><type>IMAGE-DOWNSAMPLED</type>
+  </attachment>
+  <attachment><url>https://api.elsevier.com/content/object/eid/fixture-fx1.jpg</url>
+    <ref>fx1</ref><filename>fx1.jpg</filename><mimetype>image/jpeg</mimetype>
+    <size>1234</size><height>70</height><width>100</width><type>IMAGE-HIGH-RES</type>
+  </attachment>
+  <attachment><url>https://api.elsevier.com/content/object/eid/fixture-mmc1.pdf</url>
+    <ref>mmc1</ref><filename>mmc1.pdf</filename><mimetype>application/pdf</mimetype><type>STANDARD</type>
+  </attachment>
+</attachment-metadata-response>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-text-retrieval-response xmlns="http://www.elsevier.com/xml/svapi/article/dtd"
+  xmlns:prism="http://prismstandard.org/namespaces/basic/2.0/"
+  xmlns:xocs="http://www.elsevier.com/xml/xocs/dtd"
+  xmlns:ja="http://www.elsevier.com/xml/ja/dtd"
+  xmlns:ce="http://www.elsevier.com/xml/common/dtd">
+  <coredata><prism:doi>10.1016/example</prism:doi></coredata>
+  <originalText>
+    <xocs:doc><xocs:meta><xocs:doi>10.1016/example</xocs:doi></xocs:meta>
+      <xocs:serial-item><ja:converted-article>
+        <ce:floats>
+          <ce:figure id="FIG1"><ce:label>Fig. 1</ce:label>
+            <ce:caption><ce:simple-para>Fixture main caption</ce:simple-para></ce:caption>
+            <ce:link locator="gr1"/>
+          </ce:figure>
+          <ce:figure id="FIG2"><ce:label>Fig. 2</ce:label>
+            <ce:caption><ce:simple-para>Fixture caption for an absent asset</ce:simple-para></ce:caption>
+            <ce:link locator="gr2"/>
+          </ce:figure>
+        </ce:floats>
+        <ja:head>
+          <ce:abstract class="graphical">
+            <ce:section-title>Graphical abstract</ce:section-title>
+            <ce:abstract-sec><ce:simple-para><ce:link locator="fx1"/></ce:simple-para></ce:abstract-sec>
+          </ce:abstract>
+        </ja:head>
+        <ja:body/>
+      </ja:converted-article></xocs:serial-item>
+    </xocs:doc>
+  </originalText>
+</full-text-retrieval-response>

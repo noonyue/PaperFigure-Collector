@@ -1,25 +1,18 @@
-# 开发路线：v0.2 → 可用于系统综述的正式版
+# PaperFigure-Collector 开发路线
 
-## 现在已实现
-- PMC Article Datasets AWS：DOI/PMID/PMCID、JATS、媒体文件、图片分类与哈希/审计。
-- Springer Nature：正式 OA JATS API 查询、DOI 精确匹配、XML 原始图号图注；下载 XML 内实际声明且位于允许域名的绝对图片 URL。
-- Elsevier/Cell Press：Object Retrieval view=META、同一 <ref> 对象按 IMAGE-HIGH-RES/其他版本分组、已授权图像下载；FULL 结构化全文有合法权限时按 locator 匹配图注。
-- AAAS/Science：PMC 路径优先，出版社直连缺少可核实 API 时明确阻塞。
-- 12 项测试，包括 2 项模拟端到端出版社 API 流程、无密钥阻塞、恶意 URL 检查与拒绝跳转。
+## v0.3 已完成
 
-## 必需补齐（重要性从高到低）
-1. **出版版完整性复核**：合法获取期刊图件目录（VoR figure index）→ 与 JATS/META 的图号列表逐项匹配 → 报告缺失和版本差异。不能自动网页抓图或无权限访问。需要选择可合法调用的出版商官方 Figure API 或编辑流程提供的数据源。
-2. **Springer Nature 高清图获取协议**：调研官方开发者平台是否提供 media asset URL 或其他正式授权机制。只在文档和许可确认后增加相对 URL 到官方 URL 的映射；不可根据 DOI/fig 编号编造资源路径。
-3. **Elsevier 数据映射**：面对不同 XOCS XML 结构、Cell Press 的 graphical abstract 对象命名、Supplementary 的实际标记，建立不同期刊实际 response 的匿名测试样本；区分图像对象与非正文媒体。
-4. **Science/AAAS 直连支持**：先取得 AAAS 官方开发者文档/合法接口与使用协议，才扩展独立 adapter；否则保留 PMC/本地文件路径。
-5. **局部 PDF 兜底模块**：仅对用户合法取得的 PDF 做图框与图注识别，生成 PDF 裁剪图且明确标记 source_quality=pdf_crop，不要冒充原出版高清图片；避免 PDF 重排造成图号错位。
-6. **实际在线验收**：每种出版社各 3 篇正式研究论文（开放获取，跨年份），人工确认 GA、Main Fig 1–N、Extended Data 是否齐全；并逐一记录 API 错误、下载耗时、尺寸/版本、许可和真实图注匹配率。
-7. **可追溯 Excel 输出**：增加按文献、图片、失败记录分 sheet 的批量总表；允许合并到博士课题系统综述素材库。
-8. **License/rights 强化**：图级第三方素材检测、图片来源版权说明、用户许可范围的严格提示与按许可证清单导出。
+- 可加载独立出版版图件目录，按 DOI、类别和图号逐项核对，复验归档文件的 SHA-256。结果覆盖缺图、缺文件、额外记录、歧义和作者稿版本差异。
+- 修复 PMC 公共 S3 URI、Nature 附录 Extended Data 和 Cell Press 无图号图形摘要的解析。
+- 验证 Elsevier 官方 META 与 FULL 样例，兼容旧的 HTTP 对象地址和实际 XOCS 命名空间。下载按分辨率等级与实际尺寸校验。
+- 使用 Springer Nature、Elsevier/Cell Press、AAAS 各 3 篇论文做实际 PMC 下载和独立目录比对。结果见[在线验收记录](LIVE_VALIDATION.md)。
 
-## 正式版阶段验收
-- 真实期刊出版版完整性参考集合：每种出版社不少于 3 篇可合法访问样本。
-- 与期刊 Figure Index 的匹配率、主图漏图率必须可量化，且 0 次将缩略图/裁图误标为原始高清原图。
-- 每个图形摘要、正文 Figure、Extended Data 对应原始链接或明确缺失原因。
-- 缺少许可时不下载；凭证不写入报告；绝不尝试规避访问限制。
-- 输出文件能被 Excel 读取，SHA256 可复验，测试不依赖网站页面布局。
+## 后续验证与开发
+
+1. 使用正式开发者凭证实测 Springer OA JATS 的媒体覆盖，记录不同期刊的显式媒体地址和分辨率。
+2. 使用已授权的 Elsevier 访问验证 Cell Press 各刊的实际 META 与 FULL 响应，补充图形摘要和补充图的真实结构样本。
+3. 在获取 AAAS 官方接口文档与授权后评估直连适配。当前通过 PMC 或已取得的本地 JATS 采集。
+4. 对已取得的本地 PDF 增加图框和图注提取，导出时标注 `source_quality=pdf_crop` 和图注置信度。
+5. 增加按文献、图件和失败记录分表的 Excel 输出，以及图级版权及第三方素材标注。
+
+完整覆盖以独立目录逐项匹配为准。精确出版媒体版本以出版商的文件级证据为准。

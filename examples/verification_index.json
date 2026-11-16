@@ -1,0 +1,482 @@
+{
+  "articles": [
+    {
+      "doi": "10.1038/s41467-025-55825-x",
+      "source": {
+        "kind": "publisher_pdf",
+        "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC11739661.1/PMC11739661.1.pdf?md5=41ee68ec2513c4f9c3780cd4ac8882d4",
+        "checked_on": "2026-11-16"
+      },
+      "categories": [
+        "main"
+      ],
+      "figures": [
+        {
+          "category": "main",
+          "label": "Fig. 1",
+          "locator": "PDF page 3"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 2",
+          "locator": "PDF page 5"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 3",
+          "locator": "PDF page 7"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 4",
+          "locator": "PDF page 8"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 5",
+          "locator": "PDF page 10"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 6",
+          "locator": "PDF page 11"
+        }
+      ]
+    },
+    {
+      "doi": "10.1038/s41563-025-02463-9",
+      "source": {
+        "kind": "publisher_pdf",
+        "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13046474.1/PMC13046474.1.pdf?md5=dadd0222b725d9bc08ab3a8934f449a2",
+        "checked_on": "2026-11-16"
+      },
+      "categories": [
+        "main",
+        "extended_data"
+      ],
+      "figures": [
+        {
+          "category": "main",
+          "label": "Fig. 1",
+          "locator": "PDF page 2"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 2",
+          "locator": "PDF page 4"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 3",
+          "locator": "PDF page 5"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 4",
+          "locator": "PDF page 6"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 5",
+          "locator": "PDF page 8"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 6",
+          "locator": "PDF page 9"
+        },
+        {
+          "category": "extended_data",
+          "label": "Extended Data Fig. 1",
+          "locator": "PDF page 19"
+        },
+        {
+          "category": "extended_data",
+          "label": "Extended Data Fig. 2",
+          "locator": "PDF page 20"
+        },
+        {
+          "category": "extended_data",
+          "label": "Extended Data Fig. 3",
+          "locator": "PDF page 21"
+        },
+        {
+          "category": "extended_data",
+          "label": "Extended Data Fig. 4",
+          "locator": "PDF page 22"
+        },
+        {
+          "category": "extended_data",
+          "label": "Extended Data Fig. 5",
+          "locator": "PDF page 23"
+        },
+        {
+          "category": "extended_data",
+          "label": "Extended Data Fig. 6",
+          "locator": "PDF page 24"
+        },
+        {
+          "category": "extended_data",
+          "label": "Extended Data Fig. 7",
+          "locator": "PDF page 25"
+        },
+        {
+          "category": "extended_data",
+          "label": "Extended Data Fig. 8",
+          "locator": "PDF page 26"
+        },
+        {
+          "category": "extended_data",
+          "label": "Extended Data Fig. 9",
+          "locator": "PDF page 28"
+        }
+      ]
+    },
+    {
+      "doi": "10.1038/s41586-026-10183-6",
+      "source": {
+        "kind": "publisher_pdf",
+        "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC12979198.1/PMC12979198.1.pdf?md5=682706e84c891f7b4db9e873bf8ceb51",
+        "checked_on": "2026-11-16"
+      },
+      "categories": [
+        "main",
+        "extended_data"
+      ],
+      "figures": [
+        {
+          "category": "main",
+          "label": "Fig. 1",
+          "locator": "PDF page 2"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 2",
+          "locator": "PDF page 3"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 3",
+          "locator": "PDF page 4"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 4",
+          "locator": "PDF page 5"
+        },
+        {
+          "category": "extended_data",
+          "label": "Extended Data Fig. 1",
+          "locator": "PDF page 11"
+        },
+        {
+          "category": "extended_data",
+          "label": "Extended Data Fig. 2",
+          "locator": "PDF page 12"
+        },
+        {
+          "category": "extended_data",
+          "label": "Extended Data Fig. 3",
+          "locator": "PDF page 13"
+        },
+        {
+          "category": "extended_data",
+          "label": "Extended Data Fig. 4",
+          "locator": "PDF page 14"
+        },
+        {
+          "category": "extended_data",
+          "label": "Extended Data Fig. 5",
+          "locator": "PDF page 15"
+        }
+      ]
+    },
+    {
+      "doi": "10.1016/j.celrep.2022.110667",
+      "source": {
+        "kind": "publisher_page",
+        "url": "https://www.sciencedirect.com/science/article/pii/S2211124722004193",
+        "checked_on": "2026-11-16"
+      },
+      "categories": [
+        "main",
+        "graphical_abstract"
+      ],
+      "figures": [
+        {
+          "category": "main",
+          "label": "Fig. 1",
+          "locator": "Article figure caption"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 2",
+          "locator": "Article figure caption"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 3",
+          "locator": "Article figure caption"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 4",
+          "locator": "Article figure caption"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 5",
+          "locator": "Article figure caption"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 6",
+          "locator": "Article figure caption"
+        },
+        {
+          "category": "graphical_abstract",
+          "label": "Graphical Abstract",
+          "locator": "Graphical abstract section"
+        }
+      ]
+    },
+    {
+      "doi": "10.1016/j.celrep.2023.113057",
+      "source": {
+        "kind": "publisher_page",
+        "url": "https://www.sciencedirect.com/science/article/pii/S2211124723010689",
+        "checked_on": "2026-11-16"
+      },
+      "categories": [
+        "main",
+        "graphical_abstract"
+      ],
+      "figures": [
+        {
+          "category": "main",
+          "label": "Fig. 1",
+          "locator": "Article figure caption"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 2",
+          "locator": "Publisher PDF page 4",
+          "evidence_url": "https://www.researchgate.net/publication/373595698_Cerebellar_interneurons_control_fear_memory_consolidation_via_learning-induced_HCN_plasticity"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 3",
+          "locator": "Article figure caption"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 4",
+          "locator": "Article figure caption"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 5",
+          "locator": "Article figure caption"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 6",
+          "locator": "Article figure caption"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 7",
+          "locator": "Article figure caption"
+        },
+        {
+          "category": "graphical_abstract",
+          "label": "Graphical Abstract",
+          "locator": "Graphical abstract section"
+        }
+      ]
+    },
+    {
+      "doi": "10.1016/j.celrep.2024.114504",
+      "source": {
+        "kind": "publisher_page",
+        "url": "https://www.sciencedirect.com/science/article/pii/S2211124724008337",
+        "checked_on": "2026-11-16"
+      },
+      "categories": [
+        "main",
+        "graphical_abstract"
+      ],
+      "figures": [
+        {
+          "category": "main",
+          "label": "Fig. 1",
+          "locator": "Article figure caption"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 2",
+          "locator": "Article figure caption"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 3",
+          "locator": "Article figure caption"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 4",
+          "locator": "Article figure caption"
+        },
+        {
+          "category": "graphical_abstract",
+          "label": "Graphical Abstract",
+          "locator": "Acknowledgments"
+        }
+      ]
+    },
+    {
+      "doi": "10.1126/sciadv.abn1832",
+      "source": {
+        "kind": "publisher_pdf",
+        "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC9166400.1/PMC9166400.1.pdf?md5=878fd4bc9282a6495952bfa4b23a9fb0",
+        "checked_on": "2026-11-16"
+      },
+      "categories": [
+        "main"
+      ],
+      "figures": [
+        {
+          "category": "main",
+          "label": "Fig. 1",
+          "locator": "PDF page 2"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 2",
+          "locator": "PDF page 3"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 3",
+          "locator": "PDF page 4"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 4",
+          "locator": "PDF page 5"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 5",
+          "locator": "PDF page 6"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 6",
+          "locator": "PDF page 7"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 7",
+          "locator": "PDF page 8"
+        }
+      ]
+    },
+    {
+      "doi": "10.1126/sciadv.adg4561",
+      "source": {
+        "kind": "publisher_pdf",
+        "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC10208582.1/PMC10208582.1.pdf?md5=c1586af8e6cea53f1cd862dfadf5bcb9",
+        "checked_on": "2026-11-16"
+      },
+      "categories": [
+        "main"
+      ],
+      "figures": [
+        {
+          "category": "main",
+          "label": "Fig. 1",
+          "locator": "PDF page 2"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 2",
+          "locator": "PDF page 4"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 3",
+          "locator": "PDF page 5"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 4",
+          "locator": "PDF page 6"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 5",
+          "locator": "PDF page 6"
+        }
+      ]
+    },
+    {
+      "doi": "10.1126/sciadv.adn9188",
+      "source": {
+        "kind": "publisher_pdf",
+        "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC11290488.1/PMC11290488.1.pdf?md5=a06a94b37412bb03d086436893580ead",
+        "checked_on": "2026-11-16"
+      },
+      "categories": [
+        "main"
+      ],
+      "figures": [
+        {
+          "category": "main",
+          "label": "Fig. 1",
+          "locator": "PDF page 2"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 2",
+          "locator": "PDF page 3"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 3",
+          "locator": "PDF page 3"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 4",
+          "locator": "PDF page 4"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 5",
+          "locator": "PDF page 5"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 6",
+          "locator": "PDF page 5"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 7",
+          "locator": "PDF page 6"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 8",
+          "locator": "PDF page 7"
+        },
+        {
+          "category": "main",
+          "label": "Fig. 9",
+          "locator": "PDF page 8"
+        }
+      ]
+    }
+  ]
+}
