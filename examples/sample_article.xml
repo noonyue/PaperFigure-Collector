@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<article xmlns:xlink="http://www.w3.org/1999/xlink">
+<front><article-meta><abstract abstract-type="graphical"><fig id="ga"><label>Graphical Abstract</label><graphic xlink:href="abstract.png" /></fig></abstract></article-meta></front>
+<body><sec><title>Results</title><fig id="fig1"><label>Figure 1</label><caption><p>Demonstration figure. This is synthetic fixture content, not a journal image.</p></caption><graphic xlink:href="fig1.png" /></fig></sec></body>
+</article>
