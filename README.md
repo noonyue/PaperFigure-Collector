@@ -32,6 +32,10 @@ python scripts/publisher_adapters.py --local-xml examples/sample_article.xml --l
 
 用 `--include-supplementary` 纳入补充图。已有归档缺少 DOI 字段时，可给离线核查命令传 `--doi`，已有 DOI 时两者须一致。
 
+## 图形摘要专项采集
+
+[Graphical Abstract Acquisition Engine](docs/GRAPHICAL_ABSTRACT.md)提供独立取图、按版别记录和来源核查。常规采集的论文图库也按图形摘要、正文图与 Extended Data 分区。可从已有批量归档生成按论文排列的离线图库。
+
 ## 出版版图件目录
 
 `--vor-index` 接受一个含多篇论文的 JSON。每篇填写 DOI、来源类型、HTTPS 证据链接、核读日期，以及已核读的类别和图号。类别可选 `main`、`graphical_abstract`、`extended_data`、`supplementary`。核读之后如确认某类别有零张，仍在 `categories` 声明该类别。`locator` 可填写 PDF 页码或出版页面位置。单图另有证据时可填该图的 `evidence_url`。

@@ -8,7 +8,6 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
-import html
 import json
 import re
 import sys
@@ -16,7 +15,7 @@ import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote, unquote, urlparse
+from urllib.parse import unquote, urlparse
 
 import requests
 from lxml import etree
@@ -24,6 +23,9 @@ from PIL import Image, UnidentifiedImageError
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+import ga_engine
+import ga_gallery
+import ga_sources
 import vor_audit
 
 BASE = "https://pmc-oa-opendata.s3.amazonaws.com"
@@ -149,6 +151,8 @@ class Figure:
     images: list[dict] = field(default_factory=list)
     status: str = "pending"
     label_source: str = "inferred"
+    graphical_slots: tuple[ga_engine.Slot, ...] = field(default_factory=tuple, repr=False)
+    graphical_report: dict | None = field(default=None, repr=False)
 
 
 def jats_root(data: bytes) -> etree._Element:
@@ -197,22 +201,44 @@ def figure_graphics(element: etree._Element, *, inline: bool = False, group: boo
     return graphics
 
 
-def parse_jats(data: bytes, include_supplementary: bool = False) -> list[Figure]:
+def graphical_figure(discovery: ga_engine.Discovery) -> Figure | None:
+    if not discovery.slots:
+        return None
+    owners = {slot.owner for slot in discovery.slots}
+    captions = {slot.caption for slot in discovery.slots}
+    references = {
+        slot.variants[0].reference: [v.reference for v in slot.variants]
+        for slot in discovery.slots if slot.variants
+    }
+    return Figure(
+        id=next(iter(owners)) if len(owners) == 1 else "graphical_abstract",
+        label="Graphical Abstract", caption=next(iter(captions)) if len(captions) == 1 else "",
+        attribution="", category="graphical_abstract", references=list(references),
+        variants=references, label_source="xml_category", graphical_slots=tuple(discovery.slots),
+    )
+
+
+def scan_jats(data: bytes, include_supplementary: bool = False,
+              *, doi: str | None = None) -> tuple[list[Figure], ga_engine.Discovery]:
     root = jats_root(data)
-    output: list[Figure] = []
+    discovery = ga_sources.jats(root, doi)
+    graphical = graphical_figure(discovery)
+    output = [graphical] if graphical else []
+    scopes = set(discovery.scopes)
     grouped = set()
     for node in root.iter():
         tag = localname(node)
-        graphical = is_graphical_abstract(node)
-        if tag not in {"fig", "fig-group"} and not graphical:
+        if tag not in {"fig", "fig-group"} or node in scopes:
             continue
         ancestors = list(node.iterancestors())
         ancestor_tags = {localname(parent) for parent in ancestors}
         if ancestor_tags.intersection({"ref-list", "table-wrap", "fn-group", "sub-article", "fig"}):
             continue
-        if grouped.intersection(ancestors):
+        if grouped.intersection(ancestors) or scopes.intersection(ancestors):
             continue
-        category = "graphical_abstract" if graphical else figure_category(node)
+        category = figure_category(node)
+        if category == "graphical_abstract":
+            continue
         if "back" in ancestor_tags and category not in {"extended_data", "supplementary"}:
             continue
         if category == "supplementary" and not include_supplementary:
@@ -223,21 +249,13 @@ def parse_jats(data: bytes, include_supplementary: bool = False) -> list[Figure]
             if not label or any(child_text(member, "label") for member in members):
                 continue
             grouped.add(node)
-        graphics = figure_graphics(node, inline=category == "graphical_abstract", group=tag == "fig-group")
-        if graphical and any(localname(el) in {"fig", "fig-group"} for el in node.iterdescendants()):
-            if not graphics:
-                continue
+        graphics = [g for g in figure_graphics(node, group=tag == "fig-group")
+                    if g not in scopes and not scopes.intersection(g.iterancestors())]
         group = next((el for el in ancestors if localname(el) == "fig-group"), None)
         group_label = child_text(group, "label") if group is not None else ""
         label_source = "xml" if label else "xml_group" if group_label else "inferred"
         label = label or group_label
-        if category == "graphical_abstract" and not label:
-            label, label_source = "Graphical Abstract", "xml_category"
         i = len(output) + 1
-        if graphical:
-            default_id = f"graphical_abstract_{i}"
-        else:
-            default_id = f"figure_{i}"
         pairs = alternative_groups(graphics)
         caption = child_text(node, "caption")
         attribution = child_text(node, "attrib")
@@ -245,13 +263,17 @@ def parse_jats(data: bytes, include_supplementary: bool = False) -> list[Figure]
             caption = caption or child_text(group, "caption")
             attribution = attribution or child_text(group, "attrib")
         output.append(Figure(
-            id=node.get("id") or default_id, label=label or f"Figure {i}",
+            id=node.get("id") or f"figure_{i}", label=label or f"Figure {i}",
             caption=caption, attribution=attribution, category=category,
             references=[preferred for preferred, _ in pairs], label_source=label_source,
             group_id=group.get("id", "") if group is not None else "",
             variants=dict(pairs),
         ))
-    return output
+    return output, discovery
+
+
+def parse_jats(data: bytes, include_supplementary: bool = False) -> list[Figure]:
+    return scan_jats(data, include_supplementary)[0]
 
 
 def inspect_jats_completeness(data: bytes, figures: list[Figure]) -> list[str]:
@@ -501,9 +523,103 @@ def fetch_media(s: requests.Session, reference: str, remote_urls: list[str], loc
     return get_bytes(s, https_url), https_url
 
 
+def graphical_source(metadata: dict, url: str | None = None) -> ga_engine.Source:
+    return ga_engine.Source(
+        vor_audit.normalize_doi(metadata.get("doi")), metadata.get("source") or "unavailable", url,
+        metadata.get("license_url") or metadata.get("license_code"),
+        metadata.get("source_version") or "unknown", metadata.get("selected_version"),
+    )
+
+
+def absent_graphical_url(vor_index, doi):
+    entry = (vor_index or {}).get(vor_audit.normalize_doi(doi))
+    if (entry and "graphical_abstract" in entry["categories"]
+            and not any(row["category"] == "graphical_abstract" for row in entry["figures"])):
+        return entry["source"]["url"]
+    return None
+
+
+def fetch_graphical(s: requests.Session, reference: str, urls: list[str], local_media: Path | None):
+    parsed = urlparse(reference)
+    key = unquote(parsed.path)
+    if (not key or "\\" in key or (parsed.netloc and not parsed.scheme) or
+            {"..", "."}.intersection(key.split("/")) or parsed.username or parsed.password):
+        raise ga_engine.AcquisitionError("unsafe_reference", "The image reference is outside the article media scope")
+    name = key.removeprefix("/")
+    if local_media is not None:
+        root = local_media.resolve()
+        if parsed.scheme or parsed.netloc or key.startswith("/") or any(c in key for c in ":*?"):
+            raise ga_engine.AcquisitionError("unsafe_reference", "Local media references must use relative paths")
+        exact = (root / name).resolve()
+        if not exact.is_relative_to(root):
+            raise ga_engine.AcquisitionError("unsafe_reference", "The image reference escapes the media directory")
+        if exact.is_file():
+            matches = [exact]
+        elif "/" not in name:
+            matches = [p.resolve() for p in root.rglob("*") if p.is_file() and p.resolve().is_relative_to(root)
+                       and (p.name == name or (not Path(name).suffix and p.stem == name and p.suffix.lower() in VALID_EXT))]
+        else:
+            matches = []
+        if len(matches) != 1:
+            raise ga_engine.AcquisitionError("ambiguous_reference" if matches else "media_not_listed",
+                                             "No unique authorized local image for the exact reference")
+        source = matches[0]
+        if source.stat().st_size > ga_engine.MAX_BYTES:
+            raise ga_engine.AcquisitionError("invalid_size", "The source image exceeds 80 MiB")
+        return source.read_bytes(), source.as_uri()
+    verified = [u for raw in urls if (u := pmc_https_url(raw))]
+    if parsed.scheme:
+        wanted = pmc_https_url(reference)
+        matches = [u for u in verified if wanted and urlparse(u)._replace(query="") == urlparse(wanted)._replace(query="")]
+    else:
+        matches = [u for u in verified if unquote(urlparse(u).path).endswith("/" + name)]
+        if not matches and not Path(name).suffix:
+            matches = [u for u in verified if file_extension(u) in VALID_EXT and
+                       unquote(urlparse(u).path).rsplit(".", 1)[0].endswith("/" + name)]
+    matches = list(dict.fromkeys(matches))
+    if len(matches) != 1:
+        raise ga_engine.AcquisitionError("ambiguous_reference" if matches else "media_not_listed",
+                                         "No unique PMC media entry for the exact graphical abstract reference")
+    return get_bytes(s, matches[0]), matches[0]
+
+
+def attach_graphical_result(fig: Figure, report: dict) -> None:
+    fig.graphical_report = report
+    for row in report["records"]:
+        asset = row["asset"]
+        entry = {"reference": row["reference"], "caption": row["caption"], "attribution": row["attribution"],
+                 "edition": row["edition"], "error": row["reason"], "attempts": row["attempts"],
+                 "status": "downloaded" if asset else "missing", "file": None}
+        fig.images.append({**entry, **(asset or {})})
+    fig.references = [ga_engine.clean_reference(ref) or "" for ref in fig.references]
+    fig.variants = {ga_engine.clean_reference(ref): [ga_engine.clean_reference(url) for url in variants]
+                    for ref, variants in fig.variants.items()}
+    saved = sum(a["status"] == "downloaded" for a in fig.images)
+    fig.status = "downloaded" if saved and saved == len(fig.images) else "partial" if saved else "missing"
+
+
 def collect_figures(figures: list[Figure], article_dir: Path, s: requests.Session,
-                    remote_urls: list[str], local_media: Path | None) -> None:
+                    remote_urls: list[str], local_media: Path | None, *,
+                    graphical: ga_engine.Discovery | None = None,
+                    ga_source: ga_engine.Source | None = None,
+                    ga_access: bool = True, absence_url: str | None = None) -> dict:
+    if graphical is None:
+        graphical = ga_engine.Discovery(
+            slots=[slot for fig in figures for slot in fig.graphical_slots], scanned=True,
+        )
+
+    def fetch(variant):
+        if not ga_access:
+            raise ga_engine.AcquisitionError("outside_open_access_subset",
+                                             "PMC records this version outside the authorized Open Access Subset")
+        return fetch_graphical(s, variant.reference, remote_urls, local_media)
+
+    ga_report = ga_engine.acquire(graphical, ga_source or ga_engine.Source(None, "local_jats"),
+                                  article_dir, fetch, absence_url=absence_url)
     for ix, fig in enumerate(figures, 1):
+        if fig.graphical_slots:
+            attach_graphical_result(fig, ga_report)
+            continue
         dest = article_dir / fig.category
         dest.mkdir(parents=True, exist_ok=True)
         for pos, ref in enumerate(fig.references, 1):
@@ -541,23 +657,36 @@ def collect_figures(figures: list[Figure], article_dir: Path, s: requests.Sessio
         fig.status = ("downloaded" if fig.images and all(a["status"] == "downloaded" for a in fig.images)
                       else "partial" if any(a["status"] == "downloaded" for a in fig.images)
                       else "missing")
+    return ga_report
 
 
 def write_outputs(article_dir: Path, figures: list[Figure], metadata: dict, errors: list[str],
-                  vor_index: dict[str, dict] | None = None) -> dict:
+                  vor_index: dict[str, dict] | None = None, *, graphical: dict | None = None) -> dict:
     article_dir.mkdir(parents=True, exist_ok=True)
     counts = {cat: sum(f.category == cat for f in figures) for cat in CATEGORIES}
     expected = len(figures)
     full = sum(f.status == "downloaded" for f in figures)
     partial = sum(f.status == "partial" for f in figures)
     missing = sum(f.status == "missing" for f in figures)
-    file_count = sum(a["status"] == "downloaded" for f in figures for a in f.images)
+    file_count = len({a["file"] for f in figures for a in f.images
+                      if a["status"] == "downloaded" and a.get("file")})
     stats = {"expected_figure_records": expected, "complete_figure_records": full,
              "partial_figure_records": partial, "missing_figure_records": missing,
              "downloaded_media_files": file_count, "categories": counts,
              "complete": not errors and not metadata.get("audit_notes") and expected > 0 and full == expected}
+    if graphical is None:
+        graphical = next((f.graphical_report for f in figures if f.graphical_report), None)
+    if graphical is None:
+        graphical = ga_engine.acquire(
+            ga_engine.Discovery(reason="; ".join(errors) or "The source could not be scoped for graphical abstracts"),
+            graphical_source(metadata), article_dir, lambda _: (b"", ""),
+            absence_url=absent_graphical_url(vor_index, metadata.get("doi")),
+        )
+    figure_rows = [{k: v for k, v in asdict(f).items() if k not in {"graphical_slots", "graphical_report"}}
+                   for f in figures]
     payload = {"metadata": metadata, "counts": stats, "errors": errors,
-               "figures": [asdict(f) for f in figures]}
+               "figures": figure_rows, "graphical_abstract": graphical}
+    (article_dir / "graphical_abstract.json").write_text(json.dumps(graphical, ensure_ascii=False, indent=2), encoding="utf-8")
     comparison = vor_audit.compare(payload, vor_index, article_dir)
     payload["vor_audit"] = comparison
     stats["vor_status"] = comparison["status"]
@@ -565,41 +694,36 @@ def write_outputs(article_dir: Path, figures: list[Figure], metadata: dict, erro
 
     with (article_dir / "figure_index.csv").open("w", encoding="utf-8-sig", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["category", "id", "group_id", "label", "status", "caption",
-                                                    "attribution", "file", "source_url", "sha256", "width", "height", "quality_tier", "error"])
+                                                    "attribution", "file", "source_url", "sha256", "width", "height", "quality_tier", "error",
+                                                    "format", "dimension_unit", "edition", "source_version", "acquisition_method", "doi", "license"])
         writer.writeheader()
         for fig in figures:
             for asset in fig.images or [{}]:
                 writer.writerow({"category": fig.category, "id": fig.id, "group_id": fig.group_id,
-                                 "label": fig.label, "caption": fig.caption, "attribution": fig.attribution,
+                                 "label": fig.label, "caption": asset.get("caption", fig.caption),
+                                 "attribution": asset.get("attribution", fig.attribution),
                                  "status": asset.get("status", fig.status), "file": asset.get("file"),
                                  "source_url": asset.get("source_url"), "sha256": asset.get("sha256"),
                                  "width": asset.get("width"), "height": asset.get("height"),
                                  "quality_tier": asset.get("quality_tier", "source_resolution_unverified"),
-                                 "error": asset.get("error") or ("No graphic asset in XML" if not fig.references else "")})
+                                 "error": asset.get("error") or ("No graphic asset in XML" if not fig.references else ""),
+                                 **{key: asset.get(key) for key in ("format", "dimension_unit", "edition",
+                                                                   "source_version", "acquisition_method", "doi", "license")}})
 
     lines = ["# Figure captions from the acquisition source", "",
              f"Source: {metadata.get('source', 'unknown')}", f"DOI: {metadata.get('doi', 'unknown')}", ""]
     for fig in figures:
-        lines += [f"## {fig.label} [{fig.category}]", "", fig.caption or "(Caption unavailable in source)", ""]
+        lines += [f"## {fig.label} [{fig.category}]", ""]
+        if fig.graphical_slots:
+            for row in (fig.graphical_report or graphical)["records"]:
+                lines += [f"### {row['edition']} · {row['id']}", "", row["caption"] or "(Caption unavailable in source)", ""]
+        else:
+            lines += [fig.caption or "(Caption unavailable in source)", ""]
         if fig.attribution:
             lines += ["Attribution: " + fig.attribution, ""]
     (article_dir / "captions.md").write_text("\n".join(lines), encoding="utf-8")
 
-    gallery = ['<!doctype html><html lang="en"><meta charset="utf-8"><title>Figure gallery</title>',
-               '<style>body{font:15px/1.6 system-ui,sans-serif;max-width:1050px;margin:30px auto;padding:0 16px;background:#fff;color:#222}figure{margin:0 0 32px;border-bottom:1px solid #ddd;padding-bottom:22px}img{max-width:100%;height:auto;border:1px solid #ddd}figcaption{white-space:pre-wrap}</style>',
-               '<h1>Article figure gallery</h1><p>Files preserve the bytes of the selected source rendition.</p>']
-    for fig in figures:
-        gallery.append(f'<figure><h2>{html.escape(fig.label)} — {html.escape(fig.category)}</h2>')
-        for asset in fig.images:
-            if asset.get("file"):
-                path = html.escape(quote(asset["file"], safe="/"), quote=True)
-                if Path(asset["file"]).suffix.lower() in {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".bmp"}:
-                    gallery.append(f'<img loading="lazy" src="{path}" alt="{html.escape(fig.label, quote=True)}">')
-                else:
-                    gallery.append(f'<p><a href="{path}">Source figure asset ({html.escape(Path(asset["file"]).suffix)})</a></p>')
-        gallery.append(f'<figcaption>{html.escape(fig.caption)}</figcaption></figure>')
-    gallery.append('</html>')
-    (article_dir / "gallery.html").write_text("\n".join(gallery), encoding="utf-8")
+    ga_gallery.render(article_dir / "gallery.html", [(article_dir, payload)])
 
     audit = ["# Figure extraction audit", "", "## Summary", "",
              f"- Figure records in acquisition source: **{expected}**",
@@ -640,6 +764,10 @@ def write_outputs(article_dir: Path, figures: list[Figure], metadata: dict, erro
         audit += ["## Needs review", ""] + [f"- {v}" for v in metadata["audit_notes"]] + [""]
     if errors:
         audit += ["## Collection errors", ""] + [f"- {e}" for e in errors] + [""]
+    audit.extend(["", "## Graphical Abstract", "", f"- Status {graphical['status']}"])
+    if graphical["reason"]:
+        audit.append(f"- {graphical['reason']}")
+    audit.extend(f"- {r['edition']} · {r['status']} · {r['reason'] or r['evidence']}" for r in graphical["records"])
     incomplete = [f for f in figures if f.status != "downloaded"]
     if incomplete:
         audit += ["## Missing / partial figures", ""]
@@ -662,6 +790,9 @@ def single_article(s: requests.Session, identifier: str | None, base_output: Pat
     errors: list[str] = []
     metadata: dict[str, Any] = {"input": identifier or str(local_xml), "source": "local_jats" if local_xml else "PMC_AWS_2026"}
     remote_urls: list[str] = []
+    ga_report = None
+    ga_access = True
+    source_url = None
     try:
         if local_xml:
             xml = local_xml.read_bytes()
@@ -669,6 +800,7 @@ def single_article(s: requests.Session, identifier: str | None, base_output: Pat
                 raise ValueError("Local JATS mode requires --local-media directory")
             metadata.update(jats_article_metadata(jats_root(xml)))
             metadata["source_version"] = "local_jats_unverified"
+            source_url = local_xml.resolve().as_uri()
         else:
             if pmc_record is None:
                 pmcid = resolve_pmcid(s, identifier or "", email)
@@ -686,22 +818,28 @@ def single_article(s: requests.Session, identifier: str | None, base_output: Pat
             if xml_metadata.get("license_url"):
                 metadata["license_url"] = xml_metadata["license_url"]
             metadata["selected_version"] = version
+            source_url = pmc_https_url(meta.get("xml_url") or f"{BASE}/{version}/{version}.xml")
             metadata["source_version"] = "author_manuscript" if is_yes(meta.get("is_manuscript")) else "published_in_pmc"
             if is_yes(meta.get("is_pmc_openaccess")) and str(meta.get("license_code", "")).upper() != "TDM":
                 remote_urls = metadata_urls(meta)
             else:
                 errors.append("PMC dataset marks this version as TDM-only or outside the Open Access Subset")
-        figures = parse_jats(xml, include_supplementary)
+                ga_access = False
+        figures, discovery = scan_jats(xml, include_supplementary, doi=metadata.get("doi"))
         metadata["audit_notes"] = inspect_jats_completeness(xml, figures)
         if not figures:
             errors.append("No figure records found in source JATS")
-        collect_figures(figures, article_dir, s, remote_urls, local_media)
+        ga_report = collect_figures(
+            figures, article_dir, s, remote_urls, local_media, graphical=discovery,
+            ga_source=graphical_source(metadata, source_url), ga_access=ga_access,
+            absence_url=absent_graphical_url(vor_index, metadata.get("doi")),
+        )
     except requests.RequestException as ex:
         detail = f"HTTP {ex.response.status_code}" if ex.response is not None else type(ex).__name__
         errors.append(f"PMC request failed ({detail})")
     except (OSError, ValueError, LookupError, etree.XMLSyntaxError) as ex:
         errors.append(f"{type(ex).__name__}: {ex}")
-    stats = write_outputs(article_dir, figures, metadata, errors, vor_index)
+    stats = write_outputs(article_dir, figures, metadata, errors, vor_index, graphical=ga_report)
     return article_dir, stats
 
 

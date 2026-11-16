@@ -28,6 +28,8 @@ from lxml import etree
 from PIL import Image
 
 import collect_figures as core
+import ga_engine
+import ga_sources
 import vor_audit
 
 SPRINGER_API = "https://api.springernature.com/openaccess/jats"
@@ -41,6 +43,7 @@ IMAGE_FORMATS = {"JPEG": ".jpg", "PNG": ".png", "TIFF": ".tif", "GIF": ".gif",
 
 class PublisherHTTPError(PermissionError):
     def __init__(self, status_code: int):
+        self.status_code = status_code
         super().__init__(f"Publisher API returned HTTP {status_code}")
 
 
@@ -146,6 +149,8 @@ class ElsevierRendition:
     tier: str
     width: int | None
     height: int | None
+    edition: str = "unspecified"
+    graphical_role: bool = False
 
 
 def elsevier_object_url(url: str) -> str | None:
@@ -184,7 +189,15 @@ def elsevier_renditions(data: bytes, doi: str | None = None) -> list[ElsevierRen
             continue
         dims = [direct_text(item, name) for name in ("width", "height")]
         width, height = (int(value) if re.fullmatch(r"[1-9][0-9]{0,7}", value) else None for value in dims)
-        assets.append(ElsevierRendition(ref, url, tier, width, height))
+        values = [item.get(key, "") or direct_text(item, key) for key in ("edition", "specific-use", "version")]
+        editions = {ga_sources.EDITIONS[x.lower().replace("_","-")] for x in values
+                    if x.lower().replace("_","-") in ga_sources.EDITIONS}
+        if len(editions) > 1:
+            continue
+        declared_role = any(ga_sources.role(item.get(key,"") or direct_text(item,key))
+                            for key in ("role", "object-role", "object-type", "content-type"))
+        assets.append(ElsevierRendition(ref, url, tier, width, height,
+                                      next(iter(editions), "unspecified"), declared_role))
     return assets
 
 
@@ -197,7 +210,7 @@ def group_elsevier_renditions(renditions: list[ElsevierRendition]) -> list[core.
         number = re.fullmatch(r"gr([0-9]{1,8})", ref, re.I)
         if number:
             category, label = "main", f"Figure {int(number.group(1))}"
-        elif re.fullmatch(r"ga\d*|graphical[-_ ]?abstract", ref, re.I):
+        elif any(asset.graphical_role for asset in assets):
             category, label = "graphical_abstract", "Graphical Abstract"
         elif re.fullmatch(r"(?:sup|sfig|sf|mmc)\d+", ref, re.I):
             category, label = "supplementary", f"Supplementary asset {ref}"
@@ -345,6 +358,8 @@ def save_publisher_figures(figures: list[core.Figure], dest: Path,
                            quality_by_url: dict[str, str] | None = None,
                            renditions: dict[str, ElsevierRendition] | None = None) -> None:
     for idx, fig in enumerate(figures, 1):
+        if fig.graphical_slots:
+            continue
         if fig.category == "supplementary" and not include_supplementary:
             continue
         folder = dest / fig.category
@@ -409,14 +424,34 @@ def publisher_error(exc: Exception) -> str:
     return f"{type(exc).__name__} while processing publisher response"
 
 
+def collect_publisher_graphical(discovery, metadata, folder, session, provider, headers, url, index):
+    def fetch(variant):
+        address = variant.reference
+        if not allowed_publisher_url(address, provider):
+            raise ga_engine.AcquisitionError("media_not_resolved",
+                                             "No allowlisted official object address for the graphical abstract locator")
+        try:
+            binary = safe_http_get(session, address, headers=headers, max_size=ga_engine.MAX_BYTES)
+        except PublisherHTTPError as exc:
+            raise ga_engine.AcquisitionError(f"http_{exc.status_code}", str(exc)) from exc
+        if provider == "elsevier" and binary.startswith((b"%PDF-", b"%!PS")):
+            raise ga_engine.AcquisitionError("invalid_media", "Elsevier image object returned a non-image document")
+        return binary, public_reference(address)
+
+    return ga_engine.acquire(discovery, core.graphical_source(metadata, url), folder, fetch,
+                             absence_url=core.absent_graphical_url(index, metadata.get("doi")))
+
+
 def collect_publisher(s: requests.Session, doi: str, folder: Path, provider: str,
-                      include_supplementary: bool, *, vor_index: dict[str, dict] | None = None) -> dict[str, Any]:
+                      include_supplementary: bool, *, vor_index: dict[str, dict] | None = None,
+                      graphical_only: bool = False) -> dict[str, Any]:
     figures: list[core.Figure] = []
     metadata: dict[str, Any] = {"doi": doi, "publisher_adapter": provider,
                                 "rights_note": RIGHTS_NOTE, "license_code": "unverified",
                                 "source_version": "publisher_api_unverified",
                                 "audit_notes": []}
     errors: list[str] = []
+    ga_report = None
     try:
         if provider == "springer":
             key = os.environ.get("SPRINGER_NATURE_API_KEY", "").strip()
@@ -424,7 +459,7 @@ def collect_publisher(s: requests.Session, doi: str, folder: Path, provider: str
                 raise PermissionError("SPRINGER_NATURE_API_KEY is required for Springer OA JATS API")
             api_xml = safe_http_get(s, SPRINGER_API, params={"api_key": key, "q": f"doi:{doi}", "p": 10})
             xml = find_jats_article(api_xml, doi)
-            figures = core.parse_jats(xml, include_supplementary)
+            figures, discovery = core.scan_jats(xml, include_supplementary, doi=doi)
             metadata["source"] = "SpringerNature_OA_JATS_API"
             article = safe_root(xml)
             metadata.update(core.jats_article_metadata(article))
@@ -435,6 +470,13 @@ def collect_publisher(s: requests.Session, doi: str, folder: Path, provider: str
                         node.set(name, public_reference(value))
             folder.mkdir(parents=True, exist_ok=True)
             (folder / "article.xml").write_bytes(etree.tostring(article, encoding="utf-8"))
+            ga_report = collect_publisher_graphical(discovery, metadata, folder, s, provider,
+                                                     None, SPRINGER_API, vor_index)
+            for fig in figures:
+                if fig.graphical_slots:
+                    core.attach_graphical_result(fig, ga_report)
+            if graphical_only:
+                figures = [f for f in figures if f.graphical_slots]
             save_publisher_figures(figures, folder, s, provider, headers=None,
                                    include_supplementary=include_supplementary)
         elif provider == "elsevier":
@@ -453,20 +495,39 @@ def collect_publisher(s: requests.Session, doi: str, folder: Path, provider: str
             renditions = elsevier_renditions(obj_xml, doi)
             figures = group_elsevier_renditions(renditions)
             metadata["source"] = "Elsevier_Object_Retrieval_API"
+            discovery = ga_sources.elsevier(None, renditions, doi)
+            source_url = obj_url
             try:
                 full_url = ELSEVIER_API + "/article/doi/" + quote(doi, safe="/")
                 article_xml = safe_http_get(s, full_url, params={"view": "FULL"}, headers=headers)
+                verified = ga_sources.elsevier(article_xml, renditions, doi)
                 matched = attach_elsevier_captions(figures, article_xml, doi)
                 metadata["matched_captions"] = matched
+                discovery = verified
+                source_url = full_url
             except (OSError, ValueError, LookupError, etree.XMLSyntaxError) as exc:
-                metadata["audit_notes"].append("FULL figure metadata unavailable. " + publisher_error(exc))
+                discovery.reason = "FULL figure metadata unavailable. " + publisher_error(exc)
+                metadata["audit_notes"].append(discovery.reason)
+            claimed = {v.reference for slot in discovery.slots for v in slot.variants}
+            figures = [fig for fig in figures if fig.category != "graphical_abstract"
+                       and not (fig.label_source == "object_reference" and claimed.intersection(fig.references))]
+            graph = core.graphical_figure(discovery)
+            if graph:
+                figures.append(graph)
+            media_headers = {k: v for k, v in headers.items() if k != "Accept"}
+            ga_report = collect_publisher_graphical(discovery, metadata, folder, s, provider,
+                                                     media_headers, source_url, vor_index)
+            if graph:
+                core.attach_graphical_result(graph, ga_report)
             if any(f.category == "unclassified" for f in figures):
                 metadata["audit_notes"].append("Unclassified object references require manual verification")
             if any(f.label_source == "object_reference" for f in figures):
                 metadata["audit_notes"].append("Some META objects lack a unique FULL figure locator")
             if not include_supplementary:
                 figures = [f for f in figures if f.category != "supplementary"]
-            save_publisher_figures(figures, folder, s, provider, headers={k: v for k, v in headers.items() if k != "Accept"},
+            if graphical_only:
+                figures = [f for f in figures if f.graphical_slots]
+            save_publisher_figures(figures, folder, s, provider, headers=media_headers,
                                    include_supplementary=include_supplementary,
                                    renditions={asset.url: asset for asset in renditions})
         else:
@@ -475,7 +536,7 @@ def collect_publisher(s: requests.Session, doi: str, folder: Path, provider: str
             errors.append("No verifiable figure objects in official publisher response")
     except (requests.RequestException, ValueError, LookupError, PermissionError, etree.XMLSyntaxError) as exc:
         errors.append(publisher_error(exc))
-    return core.write_outputs(folder, figures, metadata, errors, vor_index)
+    return core.write_outputs(folder, figures, metadata, errors, vor_index, graphical=ga_report)
 
 
 def run_one(s: requests.Session, identifier: str, output: Path, provider: str,

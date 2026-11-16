@@ -1,0 +1,109 @@
+{
+  "cases": [
+    {
+      "pmcid": "PMC11525032",
+      "publisher": "Elsevier / Cell Press",
+      "doi": "10.1016/j.xcrm.2024.101715",
+      "expected": true,
+      "evidence": "https://www.sciencedirect.com/science/article/pii/S2666379124004361",
+      "expected_reference": "fx1.jpg"
+    },
+    {
+      "pmcid": "PMC13737150",
+      "publisher": "Springer Nature",
+      "doi": "10.1038/s12276-026-01857-2",
+      "expected": true,
+      "evidence": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13737150.1/PMC13737150.1.pdf#page=2",
+      "expected_reference": "12276_2026_1857_Figa_HTML.webp"
+    },
+    {
+      "pmcid": "PMC11191840",
+      "publisher": "Taylor & Francis",
+      "doi": "10.1080/10717544.2024.2361168",
+      "expected": true,
+      "evidence": "https://www.tandfonline.com/doi/pdf/10.1080/10717544.2024.2361168",
+      "expected_reference": "IDRD_A_2361168_UF0001_C.jpg"
+    },
+    {
+      "pmcid": "PMC13508492",
+      "publisher": "Taylor & Francis",
+      "doi": "10.1080/0886022x.2026.2711462",
+      "expected": true,
+      "evidence": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13508492.1/PMC13508492.1.pdf",
+      "expected_reference": "IRNF_A_2711462_UF0001_C.webp"
+    },
+    {
+      "pmcid": "PMC10904060",
+      "publisher": "JCI / ASCI",
+      "doi": "10.1172/jci171995",
+      "expected": true,
+      "evidence": "https://www.jci.org/articles/view/171995/ga",
+      "expected_reference": "jci-134-171995-g248.jpg"
+    },
+    {
+      "pmcid": "PMC10233780",
+      "publisher": "Neural Regeneration Research",
+      "doi": "10.4103/1673-5374.366491",
+      "expected": true,
+      "evidence": "https://pmc-oa-opendata.s3.amazonaws.com/PMC10233780.1/PMC10233780.1.pdf#page=1",
+      "fallback_pdf_page": 1
+    },
+    {
+      "pmcid": "PMC11686342",
+      "publisher": "Springer Nature",
+      "doi": "10.1038/s41467-024-54982-9",
+      "expected": false,
+      "evidence": "https://pmc-oa-opendata.s3.amazonaws.com/PMC11686342.1/PMC11686342.1.pdf",
+      "published_numbered_figures": 7,
+      "confirm_absence": true
+    },
+    {
+      "pmcid": "PMC9636930",
+      "publisher": "PNAS",
+      "doi": "10.1073/pnas.2121273119",
+      "expected": false,
+      "evidence": "https://pmc-oa-opendata.s3.amazonaws.com/PMC9636930.1/PMC9636930.1.pdf",
+      "published_numbered_figures": 8
+    },
+    {
+      "pmcid": "PMC12283014",
+      "publisher": "Taylor & Francis",
+      "doi": "10.1080/15548627.2025.2472586",
+      "expected": false,
+      "evidence": "https://pmc-oa-opendata.s3.amazonaws.com/PMC12283014.1/PMC12283014.1.pdf",
+      "published_numbered_figures": 6
+    }
+  ],
+  "review": [
+    {
+      "pmcid": "PMC11130144",
+      "publisher": "Springer Nature",
+      "doi": "10.1038/s41419-024-06748-w",
+      "evidence": "https://doi.org/10.1038/s41419-024-06748-w",
+      "note": "Unlabelled standalone image embedded in primary abstract. Review workflow without established source role."
+    }
+  ],
+  "public_access_probes": [
+    {
+      "label": "Elsevier META, without credentials",
+      "url": "https://api.elsevier.com/content/object/doi/10.1016/j.xcrm.2024.101715",
+      "params": {
+        "view": "META"
+      }
+    },
+    {
+      "label": "Elsevier FULL, without credentials",
+      "url": "https://api.elsevier.com/content/article/doi/10.1016/j.xcrm.2024.101715",
+      "params": {
+        "view": "FULL"
+      }
+    },
+    {
+      "label": "Springer OA JATS, without credentials",
+      "url": "https://api.springernature.com/openaccess/jats",
+      "params": {
+        "q": "doi:10.1038/s12276-026-01857-2"
+      }
+    }
+  ]
+}
